@@ -324,7 +324,7 @@ const store = {
 };
 const opened = new Set(store.get("avent-opened")||[]);
 const used   = new Set(store.get("avent-used")||[]);
-const preview = location.hash === "#apercu";
+const preview = true;
 
 const T = (() => {
   const p = new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",year:"numeric",month:"numeric",day:"numeric"})
