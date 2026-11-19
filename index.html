@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendrier de l'Avent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,600;0,800;1,600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --deep:#18534F; --teal:#226D68; --mint:#ECF8F6; --butter:#FEEAA1; --caramel:#D6955B;
+    --ink:#1d2b2a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    min-height:100vh;font-family:'DM Sans',sans-serif;color:var(--mint);
+    background:radial-gradient(ellipse at 50% -10%,var(--teal),var(--deep) 65%);
+    overflow-x:hidden;
+  }
+  .snow{position:fixed;inset:0;pointer-events:none;z-index:0}
+  .snow i{position:absolute;top:-10px;border-radius:50%;background:var(--mint);animation:fall linear infinite}
+  @keyframes fall{to{transform:translateY(105vh) translateX(30px)}}
+
+  .wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:44px 18px 50px}
+  h1{font-family:'Fraunces',serif;font-weight:800;font-size:clamp(2rem,7vw,2.9rem);line-height:1.05}
+  h1 em{font-style:italic;font-weight:600;color:var(--butter)}
+  h1 .h{color:var(--caramel)}
+  .sub{margin-top:10px;opacity:.85}
+  .counter{margin-top:16px;display:flex;gap:8px;flex-wrap:wrap}
+  .pill{padding:6px 12px;border-radius:99px;font-size:.82rem;font-weight:500;background:rgba(236,248,246,.1);border:1px solid rgba(236,248,246,.2)}
+  .pill b{color:var(--butter)}
+
+  .grid{margin-top:26px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:420px){.grid{gap:10px}}
+
+  /* Case */
+  .card{perspective:900px;aspect-ratio:1/1.02;cursor:pointer;border:none;background:none;padding:0;text-align:left;font:inherit;color:inherit}
+  .inner{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.3,1.3,.5,1)}
+  .card.opened .inner{transform:rotateY(180deg)}
+  .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:16px;
+    background:var(--mint);color:var(--ink);padding:10px 10px 8px;display:flex;flex-direction:column;
+    box-shadow:0 6px 16px rgba(0,0,0,.22);transition:box-shadow .25s,transform .25s}
+  .back{transform:rotateY(180deg)}
+  .card:not(.locked):hover .face{box-shadow:0 10px 24px rgba(0,0,0,.32)}
+  .num{font-family:'Fraunces',serif;font-weight:800;font-size:1.35rem;color:var(--deep);line-height:1}
+  .corner{position:absolute;top:10px;right:10px;color:var(--caramel);font-size:.9rem}
+  .badge{position:absolute;top:8px;right:8px;background:var(--caramel);color:#fff;font-size:.6rem;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;padding:3px 7px;border-radius:99px}
+  .doodle{flex:1;display:flex;align-items:center;justify-content:center;min-height:0}
+  .doodle svg{width:88%;height:100%;max-height:100%}
+  .date{font-size:.68rem;font-weight:700;color:var(--teal)}
+  .card.locked .doodle{opacity:.38;filter:grayscale(.6)}
+  .lockic{width:11px;height:11px;vertical-align:-1px;margin-left:4px;display:none}
+  .card.locked .lockic{display:inline}
+  .card.today .face.front{box-shadow:0 0 0 3px var(--butter),0 0 26px rgba(254,234,161,.5)}
+  .card.today .inner{animation:wiggle 2.6s ease-in-out infinite}
+  .card.today.opened .inner{animation:none}
+  @keyframes wiggle{0%,80%,100%{transform:rotate(0)}85%{transform:rotate(-2.5deg)}90%{transform:rotate(2.5deg)}95%{transform:rotate(-1deg)}}
+
+  .back{justify-content:space-between}
+  .b-icon{display:flex;justify-content:center;margin-top:2px}.b-icon svg{width:42%;height:auto}
+  .b-title{font-family:'Fraunces',serif;font-weight:600;font-size:.9rem;line-height:1.15;text-align:center;color:var(--deep)}
+  .b-title.long{font-size:.74rem}
+  .has-long .b-icon svg{width:28%}
+  .has-long .b-icon{margin-top:0}
+  .stamp-mini{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);
+    border:2px solid var(--caramel);color:var(--caramel);font-weight:700;font-size:.7rem;letter-spacing:.12em;
+    text-transform:uppercase;padding:2px 8px;border-radius:6px;background:rgba(236,248,246,.85);display:none}
+  .card.used .stamp-mini{display:block}
+  .card.used .back > :not(.stamp-mini){opacity:.45}
+
+  /* Particules */
+  .burst{position:fixed;pointer-events:none;z-index:30;font-size:16px}
+
+  /* Toast */
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,calc(100% + 60px));visibility:hidden;background:var(--butter);color:var(--ink);
+    padding:12px 18px;border-radius:14px;font-weight:600;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:40;
+    transition:transform .35s cubic-bezier(.3,1.4,.5,1);max-width:90vw;text-align:center}
+  .toast.show{transform:translate(-50%,0);visibility:visible}
+
+  /* Ticket */
+  .overlay{position:fixed;inset:0;z-index:20;background:rgba(10,40,38,.7);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;padding:20px}
+  .overlay.show{display:flex}
+  .ticket{width:100%;max-width:400px;animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
+  @keyframes pop{from{transform:scale(.6) rotate(-5deg);opacity:0}}
+  .t-main,.t-stub{background:var(--mint);color:var(--ink);position:relative}
+  .t-main{border-radius:20px 20px 0 0;padding:28px 24px 22px;text-align:center}
+  .t-stub{border-radius:0 0 20px 20px;padding:18px 20px 20px;border-top:2.5px dashed #b9d8d3;transition:transform .6s ease-in,opacity .6s}
+  .t-stub::before,.t-stub::after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:#0f3634}
+  .t-stub::before{left:-12px}.t-stub::after{right:-12px}
+  .t-stub.torn{transform:translateY(60px) rotate(7deg);opacity:0}
+  .close{position:absolute;top:10px;right:14px;background:none;border:none;font-size:1.6rem;cursor:pointer;color:var(--teal)}
+  .t-day{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--caramel);font-weight:700}
+  .t-icon{width:76px;height:76px;margin:12px auto 8px}.t-icon svg{width:100%;height:100%}
+  .t-title{font-family:'Fraunces',serif;font-weight:800;font-size:1.7rem;line-height:1.1;color:var(--deep)}
+  .t-desc{margin-top:10px;color:#3d5856;line-height:1.5}
+  .t-valid{white-space:pre-line;line-height:1.5;margin-top:14px;font-size:.8rem;color:var(--teal)}
+  .t-used{display:none;margin:14px auto 0;width:max-content;border:2.5px solid var(--caramel);color:var(--caramel);
+    font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:4px 14px;border-radius:8px;transform:rotate(-6deg)}
+  .ticket.is-used .t-used{display:block}
+
+  .slider{position:relative;height:52px;border-radius:99px;background:var(--deep);overflow:hidden;user-select:none;touch-action:none}
+  .slider .label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mint);
+    font-weight:600;font-size:.92rem;padding-left:40px;opacity:.9}
+  .slider .fill{position:absolute;left:0;top:0;bottom:0;background:var(--teal);width:52px;border-radius:99px}
+  .slider .knob{position:absolute;left:4px;top:4px;width:44px;height:44px;border-radius:50%;background:var(--butter);
+    display:flex;align-items:center;justify-content:center;font-size:1.25rem;cursor:grab;box-shadow:0 3px 8px rgba(0,0,0,.25)}
+  .slider .knob:active{cursor:grabbing}
+  .stub-hint{text-align:center;font-size:.75rem;color:var(--teal);margin-top:8px}
+
+  .send{display:none;text-align:center}
+  .send p{font-weight:600;color:var(--deep);margin-bottom:12px}
+  .btns{display:flex;gap:10px}
+  .btn{flex:1;display:inline-flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;
+    font:700 .92rem 'DM Sans';text-decoration:none;border:none;cursor:pointer}
+  .btn.wa{background:#25d366;color:#fff}
+  .btn.mail{background:var(--deep);color:var(--mint)}
+  .fallback{margin-top:10px;font-size:.72rem;color:#5d7a77}
+  .undo{margin-top:10px;background:none;border:none;color:var(--teal);font:500 .75rem 'DM Sans';text-decoration:underline;cursor:pointer}
+  .expired-note{display:none;text-align:center;font-size:.85rem;color:var(--teal)}
+  .ticket.is-expired .slider,.ticket.is-expired .stub-hint,.ticket.is-expired .send{display:none!important}
+  .ticket.is-expired .expired-note{display:block}
+
+  footer{margin-top:22px;font-size:.82rem;opacity:.75}
+</style>
+</head>
+<body>
+<div class="snow" id="snow"></div>
+
+<div class="wrap">
+  <h1>Ton calendrier<br><em>de l'Avent, <span id="nomElle"></span></em> <span class="h">♥</span></h1>
+  <p class="sub" id="sub"></p>
+  <div class="counter" id="counter"></div>
+  <main class="grid" id="grid"></main>
+  <footer id="foot"></footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="overlay" id="overlay">
+  <div class="ticket" id="ticket" role="dialog" aria-modal="true">
+    <div class="t-main">
+      <button class="close" id="close" aria-label="Fermer">×</button>
+      <div class="t-day" id="tDay"></div>
+      <div class="t-icon" id="tIcon"></div>
+      <div class="t-title" id="tTitle"></div>
+      <p class="t-desc" id="tDesc"></p>
+      <div class="t-valid" id="tValid"></div>
+      <div class="t-used">Utilisé</div>
+    </div>
+    <div class="t-stub" id="stub">
+      <div class="slider" id="slider">
+        <div class="fill" id="fill"></div>
+        <div class="label">Glisse pour utiliser ce bon</div>
+        <div class="knob" id="knob"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1d2b2a" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 18M8.5 15.5L20 6"/></svg></div>
+      </div>
+      <div class="stub-hint">Une fois découpé, le bon est utilisé</div>
+      <div class="send" id="send">
+        <p>Préviens-moi</p>
+        <div class="btns">
+          <a class="btn wa" id="btnWa" target="_blank" rel="noopener">WhatsApp</a>
+          <a class="btn mail" id="btnMail">E-mail</a>
+        </div>
+        <div class="fallback" id="fallback"></div>
+        <button class="undo" id="undo">Oups, je ne voulais pas l'utiliser</button>
+      </div>
+      <div class="expired-note">Ce bon a expiré le 31 décembre.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== À PERSONNALISER ===== */
+const CONFIG = {
+  prenomElle: "Manel",
+  signature:  "Lucas",
+  whatsapp:   "33600000000",          // format international, sans + ni espaces
+  email:      "ton.adresse@mail.com",
+  annee:      2026,
+};
+
+const BONS = [
+  {i:"huile", t:"Massage",              d:"Dos, pieds ou complet : tu choisis. Huile chaude et sans regarder l'heure."},
+  {i:"verres", t:"Dîner aux chandelles",   d:"Je cuisine pour toi à la maison, bougies allumées. Tu n'as qu'à t'installer."},
+  {i:"telephone", t:"Nos fonds d'écran",  d:"Choisis 5 photos de nous que tu veux en fond d'écran, et on les fait ensemble."},
+  {i:"popcorn", t:"Cinéma maison",         d:"Film ou série de ton choix, avec pop-corn, boisson, bonbons et plaid."},
+  {i:"levres", t:"Bon pour une gamahuche",  d:"Tu sais de quoi je parle… Quand tu veux, aussi longtemps que tu veux."},
+  {i:"bain", t:"Bain cocooning",          d:"Bain préparé avec bougies, musique et sels. Tu n'as rien à faire."},
+  {i:"noeud", t:"Lingerie choisie",        d:"Tu choisis une lingerie qui te plaît (style, couleur, dentelle ou pas), je te l'offre… et tu la portes pour moi le soir de ton choix."},
+  {i:"tasse", t:"Petit-déj au lit",        d:"Grasse mat' garantie, plateau servi au lit."},
+  {i:"de", t:"Soirée jeux",             d:"Jeux de société ou jeux vidéo, c'est toi qui choisis."},
+  {i:"bonbon", t:"À ton tour : une gamahuche pour moi", d:"Celui-là, c'est un peu pour moi… À m'offrir quand tu en as envie, et seulement si tu en as envie."},
+  {i:"sapin", t:"Marché de Noël",          d:"Balade au marché de Noël, vin chaud et churros offerts."},
+  {i:"lune", t:"Nuit sans téléphone",      d:"Une soirée et une nuit rien que nous deux, téléphones éteints jusqu'au matin."},
+  {i:"polaroid", t:"Photos coquines",      d:"Choisis 5 photos coquines que tu aimerais qu'on fasse ensemble. Rien que pour nous."},
+  {i:"couverts", t:"Dîner au resto",         d:"Le restaurant de ton choix, c'est moi qui invite."},
+  {i:"reveil", t:"Réveil coquin",           d:"Un réveil tout en douceur… ou pas."},
+  {i:"douche", t:"Douche ou bain à deux",  d:"Une douche ou un bain ensemble, c'est toi qui choisis. Je m'occupe de te savonner."},
+  {i:"lettre", t:"Lettre d'amour",          d:"Une vraie lettre, écrite à la main."},
+  {i:"sac", t:"Ton nouveau style",       d:"Une journée shopping pour te trouver un nouveau style. On cherche des idées ensemble, je porte les sacs et je te dis franchement ce qui te va."},
+  {i:"flocon", t:"Patinoire",              d:"Une sortie patinoire, chocolat chaud compris."},
+  {i:"coeurs", t:"Câlins à volonté",       d:"Des câlins quand tu veux, où tu veux, aussi longtemps que tu veux."},
+  {i:"vinyle", t:"Slow dans le salon",      d:"Lumières tamisées, notre chanson, et on danse."},
+  {i:"bougie", t:"Massage sensuel",        d:"Un massage qui a de grandes chances de déraper."},
+  {i:"oui", t:"Joker « Oui »",           d:"Je dis oui à n'importe quelle demande (raisonnable… à peu près)."},
+  {i:"agenda", t:"Une journée rien qu'à nous", d:"Le grand final : une journée entière tous les deux, du réveil au coucher. On choisit le programme ensemble à l'avance, et tu as le dernier mot."},
+];
+
+const TAQUINERIES = [
+  "Pas touche", "Même pas un petit indice", "Patience Manel…", "Tricheuse…",
+  "Ça se mérite", "Reviens le {n} décembre", "Secoue pas, ça va rien changer", "Non non non",
+];
+/* ========================== */
+
+/* --- Doodles (aucun ne dévoile le cadeau) --- */
+const L = 'stroke="#1d2b2a" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"';
+const head = (x,y,r) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#fff" ${L}/>`;
+const gift = (x,y,w,h) => {
+  const m = x + w/2;
+  return `<g>
+    <ellipse cx="${m-5}" cy="${y-3}" rx="5" ry="3.2" fill="#FEEAA1" ${L}/>
+    <ellipse cx="${m+5}" cy="${y-3}" rx="5" ry="3.2" fill="#FEEAA1" ${L}/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="#D6955B" ${L}/>
+    <rect x="${m-2.5}" y="${y+1.2}" width="5" height="${h-2.4}" fill="#FEEAA1"/>
+  </g>`;
+};
+const eyes = (x1,x2,y) => `<circle cx="${x1}" cy="${y}" r="1.5" fill="#1d2b2a"/><circle cx="${x2}" cy="${y}" r="1.5" fill="#1d2b2a"/>`;
+const blush = (x1,x2,y) => `<ellipse cx="${x1}" cy="${y}" rx="2.6" ry="1.5" fill="#D6955B" opacity=".45"/><ellipse cx="${x2}" cy="${y}" rx="2.6" ry="1.5" fill="#D6955B" opacity=".45"/>`;
+/* --- Icônes des bons (remplacent les emojis) --- */
+const C = "#D6955B", B = "#FEEAA1", G = "#226D68";
+const ic = inner => `<svg viewBox="0 0 48 48" fill="none" aria-hidden="true">${inner}</svg>`;
+const heart = (x,y,s,f) => `<path transform="translate(${x} ${y}) scale(${s})" vector-effect="non-scaling-stroke" d="M0 6C-8 0-10-6-5-8-2-9 0-7 0-5 0-7 2-9 5-8 10-6 8 0 0 6Z" fill="${f}" ${L}/>`;
+const ICONS = {
+  huile:   ic(`<path d="M20 7h8v7h-8z" fill="${B}" ${L}/><path d="M18 14h12l2 6v17a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4V20z" fill="${C}" ${L}/><path d="M24 25c-3 4-3 8 0 8s3-4 0-8z" fill="${B}" ${L}/>`),
+  marmite: ic(`<path d="M10 22h28v9a9 9 0 0 1-9 9H19a9 9 0 0 1-9-9z" fill="${C}" ${L}/><path d="M5 24h5M38 24h5M14 18h20" ${L}/><path d="M18 13q2-3 0-6M24 13q2-3 0-6M30 13q2-3 0-6" ${L} opacity=".55"/>`),
+  balai:   ic(`<path d="M32 5L24 25" ${L}/><path d="M17 23l13 6-4 13c-6-1-13-4-15-9z" fill="${B}" ${L}/><path d="M15 32l9 4M17 37l6 3" ${L}/>`),
+  popcorn: ic(`<circle cx="16" cy="16" r="5" fill="#fff" ${L}/><circle cx="32" cy="16" r="5" fill="#fff" ${L}/><circle cx="24" cy="12" r="6" fill="#fff" ${L}/><path d="M12 19h24l-4 23H16z" fill="${B}" ${L}/><path d="M19 19l2 23M29 19l-2 23" stroke="${C}" stroke-width="3"/>`),
+  levres:  ic(`<path d="M5 24c6-8 13-10 19-6 6-4 13-2 19 6-6 9-13 12-19 12S11 33 5 24z" fill="${C}" ${L}/><path d="M5 24c9 3 29 3 38 0" ${L}/>`),
+  bain:    ic(`<path d="M5 25h38v5a10 10 0 0 1-10 10H15A10 10 0 0 1 5 30z" fill="${B}" ${L}/><path d="M10 25V12a4 4 0 0 1 8 0M14 44l2-4M34 44l-2-4" ${L}/><circle cx="26" cy="17" r="3" ${L}/><circle cx="33" cy="11" r="2" ${L}/><circle cx="34" cy="19" r="2.5" ${L}/>`),
+  trophee: ic(`<path d="M16 7h16v11a8 8 0 0 1-16 0z" fill="${B}" ${L}/><path d="M16 10h-5a5 5 0 0 0 5 8M32 10h5a5 5 0 0 1-5 8M24 26v7" ${L}/><path d="M16 41h16l-2-8H18z" fill="${C}" ${L}/>`),
+  tasse:   ic(`<path d="M9 19h23v11a10 10 0 0 1-10 10h-3A10 10 0 0 1 9 30z" fill="${C}" ${L}/><path d="M32 22h3a5 5 0 0 1 0 10h-3" ${L}/><path d="M16 13q2-3 0-6M23 13q2-3 0-6" ${L} opacity=".55"/>`),
+  de:      ic(`<rect x="9" y="9" width="30" height="30" rx="6" fill="${B}" ${L}/>${[[17,17],[31,17],[24,24],[17,31],[31,31]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.6" fill="#1d2b2a"/>`).join("")}`),
+  rideau:  ic(`<path d="M5 7h38" ${L}/><path d="M8 7c0 14 4 26 12 33H8z" fill="${C}" ${L}/><path d="M40 7c0 14-4 26-12 33h12z" fill="${C}" ${L}/><path d="M24 22l1.8 3.6 4 .6-2.9 2.8.7 4-3.6-1.9-3.6 1.9.7-4-2.9-2.8 4-.6z" fill="${B}" ${L}/>`),
+  sapin:   ic(`<path d="M24 7l10 13h-5l8 12H11l8-12h-5z" fill="${G}" ${L}/><path d="M21 32h6v8h-6z" fill="${C}" ${L}/><circle cx="24" cy="6" r="2.5" fill="${B}" ${L}/>`),
+  creme:   ic(`<rect x="10" y="22" width="28" height="18" rx="4" fill="${B}" ${L}/><rect x="8" y="14" width="32" height="8" rx="3" fill="${C}" ${L}/><path d="M18 31h12" ${L}/>`),
+  note:    ic(`<path d="M18 35V11l20-5v24M18 17l20-5" ${L}/><ellipse cx="13" cy="36" rx="6" ry="5" fill="${C}" ${L}/><ellipse cx="33" cy="31" rx="6" ry="5" fill="${C}" ${L}/>`),
+  couverts:ic(`<circle cx="24" cy="24" r="18" fill="${B}" ${L}/><path d="M15 12v8a3 3 0 0 0 6 0v-8M18 12v24" ${L}/><path d="M32 12c-4 4-4 12 0 15v9" ${L}/>`),
+  reveil:  ic(`<circle cx="24" cy="26" r="14" fill="${B}" ${L}/><path d="M24 18v8l5 4M9 13l6-5M39 13l-6-5M14 42l3-4M34 42l-3-4" ${L}/>`),
+  sac:     ic(`<path d="M10 17h28l-2 25H12z" fill="${C}" ${L}/><path d="M18 21v-7a6 6 0 0 1 12 0v7" ${L}/>`),
+  lettre:  ic(`<rect x="6" y="12" width="36" height="26" rx="3" fill="${B}" ${L}/><path d="M6 14l18 13 18-13" ${L}/>${heart(24,31,0.9,C)}`),
+  couronne:ic(`<path d="M8 36L6 15l10 8 8-14 8 14 10-8-2 21z" fill="${B}" ${L}/><path d="M8 41h32" ${L}/><circle cx="24" cy="29" r="2.6" fill="${C}"/>`),
+  flocon:  ic(`<path d="M24 6v36M8.4 15l31.2 18M8.4 33l31.2-18M19 8l5 5 5-5M19 40l5-5 5 5" ${L}/><circle cx="24" cy="24" r="4" fill="${C}" ${L}/>`),
+  coeurs:  ic(`${heart(19,25,1.7,C)}${heart(31,21,1.3,B)}`),
+  vinyle:  ic(`<circle cx="24" cy="24" r="18" fill="#1d2b2a"/><circle cx="24" cy="24" r="13" stroke="${B}" stroke-width="1" opacity=".4"/><circle cx="24" cy="24" r="7" fill="${C}"/><circle cx="24" cy="24" r="1.6" fill="#ECF8F6"/>`),
+  bougie:  ic(`<rect x="17" y="20" width="14" height="22" rx="2" fill="${B}" ${L}/><path d="M24 20v-4" ${L}/><path d="M24 5c-4 5-4 10 0 11 4-1 4-6 0-11z" fill="${C}" ${L}/>`),
+  oui:     ic(`<path d="M8 9h32a3 3 0 0 1 3 3v18a3 3 0 0 1-3 3H21l-9 7v-7H8a3 3 0 0 1-3-3V12a3 3 0 0 1 3-3z" fill="${B}" ${L}/><text x="24" y="26" text-anchor="middle" font-family="Fraunces,serif" font-weight="800" font-size="12" fill="#18534F">OUI</text>`),
+  verres:  ic(`<path d="M10 8h11l-1 10a4.5 4.5 0 0 1-9 0z" fill="${C}" ${L}/><path d="M27 8h11l-1 10a4.5 4.5 0 0 1-9 0z" fill="${C}" ${L}/><path d="M15.5 23v14M32.5 23v14M10 38h11M27 38h11" ${L}/><path d="M24 4v3" ${L} opacity=".5"/>`),
+  telephone:ic(`<rect x="13" y="5" width="22" height="38" rx="4" fill="${B}" ${L}/><path d="M13 30l7-7 6 6 4-4 5 5" ${L}/><circle cx="29" cy="15" r="3" fill="${C}" ${L}/><path d="M21 38h6" ${L}/>`),
+  polaroid:ic(`<rect x="9" y="6" width="30" height="36" rx="2" fill="#fff" ${L}/><rect x="13" y="10" width="22" height="20" fill="${B}" ${L}/>${heart(24,21,1,C)}<path d="M18 36h12" ${L} opacity=".5"/>`),
+  noeud:   ic(`<path d="M24 22C18 12 6 10 6 18s12 10 18 4zM24 22c6-10 18-12 18-4s-12 10-18 4z" fill="${C}" ${L}/><path d="M22 25l-7 16 5-2 2 5 3-17M26 25l7 16-5-2-2 5-3-17" fill="${B}" ${L}/><circle cx="24" cy="22" r="3.5" fill="${B}" ${L}/>`),
+  lune:    ic(`<path d="M30 8a16 16 0 1 0 10 26A13 13 0 0 1 30 8z" fill="${B}" ${L}/><path d="M36 10l1.2 2.6 2.8.4-2 2 .5 2.8-2.5-1.3-2.5 1.3.5-2.8-2-2 2.8-.4z" fill="${C}" ${L}/><circle cx="42" cy="22" r="1.5" fill="${C}"/>`),
+  douche:  ic(`<path d="M10 42V12a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2" ${L}/><path d="M18 18h16l-3-4h-10z" fill="${C}" ${L}/>${[[20,25],[26,25],[32,25],[23,31],[29,31],[26,37]].map(([x,y])=>`<path d="M${x} ${y}l-1 3" ${L} opacity=".6"/>`).join("")}${heart(37,35,0.9,B)}`),
+  plume:   ic(`<path d="M38 6C22 8 12 20 12 36l4-2c2-14 10-22 22-28z" fill="${B}" ${L}/><path d="M38 6C34 22 26 30 16 34" ${L}/><path d="M12 36L8 42" ${L}/><path d="M22 22l6 1M18 28l7 0" ${L} opacity=".5"/>`),
+  cartes:  ic(`<rect x="8" y="12" width="16" height="24" rx="2.5" transform="rotate(-14 16 24)" fill="#fff" ${L}/><rect x="16" y="9" width="16" height="24" rx="2.5" fill="#fff" ${L}/><rect x="24" y="12" width="16" height="24" rx="2.5" transform="rotate(14 32 24)" fill="${B}" ${L}/>${heart(32,23,0.8,C)}`),
+  agenda:  ic(`<rect x="7" y="10" width="34" height="31" rx="4" fill="#fff" ${L}/><path d="M7 18h34" ${L}/><rect x="7" y="10" width="34" height="8" rx="4" fill="${C}" ${L}/><path d="M15 6v8M33 6v8" ${L}/>${heart(24,28,1,B)}`),
+  bonbon:  ic(`<path d="M14 24l-8-7v14zM34 24l8-7v14z" fill="${B}" ${L}/><ellipse cx="24" cy="24" rx="11" ry="9" fill="${C}" ${L}/><path d="M18 19q6 5 0 10M24 16q6 8 0 16M30 19q-6 5 0 10" ${L} opacity=".45"/>`),
+  cle:     ic(`<circle cx="15" cy="24" r="9" fill="${C}" ${L}/><circle cx="15" cy="24" r="3" fill="#ECF8F6" ${L}/><path d="M24 24h18M36 24v6M41 24v5" ${L}/>`),
+};
+const LOCK = `<svg class="lockic" viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="7" width="10" height="7" rx="1.5" fill="#226D68"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#226D68" stroke-width="1.8" fill="none"/></svg>`;
+
+const svg = inner =>`<svg viewBox="6 2 88 86" fill="none" aria-hidden="true">${inner}</svg>`;
+
+const DOODLES = [
+  // cache le cadeau derrière son dos
+  () => svg(`${gift(52,40,22,17)}
+    <path d="M45 37V61M45 61L38 80M45 61L52 80M45 45L56 50M45 47L54 54" ${L}/>
+    ${head(45,25,12)}${eyes(42,48,24)}<path d="M41 30Q45 32 49 29" ${L}/>${blush(39,51,28)}`),
+  // secoue le paquet
+  () => svg(`${gift(38,8,24,16)}
+    <path d="M50 52V70M50 70L43 86M50 70L57 86M50 56L39 24M50 56L61 24" ${L}/>
+    <path d="M30 10Q26 16 30 22M70 10Q74 16 70 22M24 8Q19 16 24 24M76 8Q81 16 76 24" ${L} opacity=".5"/>
+    ${head(50,40,11)}${eyes(46,54,38)}<circle cx="50" cy="44" r="2.2" fill="#1d2b2a"/>`),
+  // fait « chut »
+  () => svg(`${gift(60,64,20,15)}
+    <path d="M42 41V64M42 64L35 82M42 64L49 82M42 48L32 60M42 48L50 42L47 36" ${L}/>
+    ${head(42,27,13)}${eyes(37,46,25)}<path d="M39 32H45" ${L}/><path d="M47 30V38" ${L}/>${blush(35,50,30)}
+    <text x="62" y="26" font-family="Fraunces,serif" font-style="italic" font-size="10" fill="#226D68">chut…</text>`),
+  // dort sur le paquet
+  () => svg(`${gift(34,52,36,26)}
+    <path d="M40 46H62M62 46L76 42M62 46L76 50M44 46L50 52M54 46L58 52" ${L}/>
+    ${head(31,44,10)}<path d="M26 44Q28 46 30 44M33 44Q35 46 37 44" ${L}/>
+    <text x="14" y="28" font-family="Fraunces,serif" font-weight="600" font-size="9" fill="#226D68">z</text>
+    <text x="20" y="20" font-family="Fraunces,serif" font-weight="600" font-size="12" fill="#226D68">Z</text>`),
+  // jette un œil dans le carton
+  () => svg(`<rect x="22" y="56" width="32" height="24" rx="2" fill="#D6955B" ${L}/>
+    <rect x="36" y="57.2" width="5" height="21.6" fill="#FEEAA1"/>
+    <path d="M22 56L14 44M54 56L60 46" ${L}/>
+    <path d="M70 48L78 68M78 68L72 86M78 68L86 86M72 54L56 58" ${L}/>
+    ${head(64,40,11)}<circle cx="58" cy="44" r="1.5" fill="#1d2b2a"/><circle cx="63" cy="46" r="1.5" fill="#1d2b2a"/>
+    <text x="74" y="26" font-family="Fraunces,serif" font-weight="800" font-size="13" fill="#D6955B">?</text>`),
+  // fait un câlin au paquet
+  () => svg(`<path d="M50 39V62M50 62L43 82M50 62L57 82" ${L}/>
+    ${gift(38,43,24,18)}
+    <path d="M50 46Q36 48 38 56M50 46Q64 48 62 56" ${L}/>
+    ${head(50,26,13)}<path d="M44 25Q46 22 48 25M52 25Q54 22 56 25M46 31Q50 34 54 31" ${L}/>${blush(43,57,29)}
+    <text x="70" y="22" font-size="11" fill="#D6955B">♥</text><text x="22" y="30" font-size="8" fill="#D6955B">♥</text>`),
+  // court avec le paquet
+  () => svg(`${gift(56,32,20,16)}
+    <path d="M44 38L40 60M40 60L28 72M40 60L50 80M43 44L58 40M43 46L56 50" ${L}/>
+    <path d="M14 44H24M10 52H22M16 60H26" ${L} opacity=".45"/>
+    ${head(46,25,11)}${eyes(44,50,23)}<path d="M44 29Q47 31 50 29" ${L}/>`),
+  // assise sur le paquet, fait coucou
+  () => svg(`${gift(32,58,36,22)}
+    <path d="M50 38V56M50 56L40 58L40 74M50 56L60 58L60 74M50 44L64 30M50 44L38 52" ${L}/>
+    <path d="M68 24L71 21M70 30L74 30" ${L} opacity=".5"/>
+    ${head(50,26,12)}${eyes(46,54,24)}<path d="M45 29Q50 34 55 29" ${L}/>${blush(43,57,28)}`),
+];
+
+/* --- État --- */
+const store = {
+  get(k){try{return JSON.parse(localStorage.getItem(k))}catch{return null}},
+  set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+};
+const opened = new Set(store.get("avent-opened")||[]);
+const used   = new Set(store.get("avent-used")||[]);
+const preview = location.hash === "#apercu";
+
+const T = (() => {
+  const p = new Intl.DateTimeFormat("fr-FR",{timeZone:"Europe/Paris",year:"numeric",month:"numeric",day:"numeric"})
+    .formatToParts(new Date()).reduce((o,x)=>(o[x.type]=+x.value,o),{});
+  return {y:p.year,m:p.month,d:p.day};
+})();
+const Y = CONFIG.annee;
+const beforeDec = T.y < Y || (T.y === Y && T.m < 12);
+const expired   = T.y > Y;
+const isUnlocked = n => preview || expired || (T.y === Y && T.m === 12 && T.d >= n);
+const isToday    = n => !preview && T.y === Y && T.m === 12 && T.d === n;
+const dateLabel  = n => new Date(Y,11,n).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short"});
+
+/* --- En-tête --- */
+document.getElementById("nomElle").textContent = CONFIG.prenomElle;
+document.getElementById("sub").textContent = `De la part de ${CONFIG.signature}, avec tout son amour. Une case par jour, un bon à utiliser avant le 31.`;
+function renderCounter(){
+  let first;
+  if (preview) first = "Mode aperçu";
+  else if (beforeDec){
+    const days = Math.round((Date.UTC(Y,11,1) - Date.UTC(T.y,T.m-1,T.d)) / 864e5);
+    first = `Ouverture dans <b>${days}</b> jour${days>1?"s":""}`;
+  }
+  else if (expired) first = "Les bons ont expiré";
+  else first = T.d <= 24 ? `Jour <b>${T.d}</b>` : "Toutes les cases sont ouvertes";
+  const dispo = [...opened].filter(n=>!used.has(n)).length;
+  document.getElementById("counter").innerHTML =
+    `<span class="pill">${first}</span><span class="pill"><b>${opened.size}</b> ouvert${opened.size>1?"s":""}</span><span class="pill"><b>${dispo}</b> à utiliser · <b>${used.size}</b> utilisé${used.size>1?"s":""}</span>`;
+}
+document.getElementById("foot").textContent = beforeDec && !preview
+  ? "Rendez-vous le 1er décembre" : "Chaque bon ne peut servir qu'une fois ♥";
+
+/* --- Grille --- */
+const grid = document.getElementById("grid");
+const cards = {};
+for (let n=1;n<=24;n++){
+  const c = document.createElement("button");
+  c.className = "card";
+  c.setAttribute("aria-label",`Case ${n}`);
+  c.innerHTML = `<div class="inner">
+      <div class="face front">
+        <span class="num">${n}</span><span class="corner">♥</span>
+        <div class="doodle">${DOODLES[(n*5)%DOODLES.length]()}</div>
+        <span class="date">${dateLabel(n)}${LOCK}</span>
+      </div>
+      <div class="face back${BONS[n-1].t.length>24?" has-long":""}">
+        <span class="num">${n}</span>
+        <div class="b-icon">${ICONS[BONS[n-1].i]}</div>
+        <div class="b-title${BONS[n-1].t.length>24?" long":""}">${BONS[n-1].t}</div>
+        <span class="date">${dateLabel(n)}</span>
+        <span class="stamp-mini">utilisé</span>
+      </div>
+    </div>`;
+  c.onclick = () => onCard(n);
+  grid.appendChild(c);
+  cards[n] = c;
+}
+function refresh(){
+  for (let n=1;n<=24;n++){
+    const c = cards[n];
+    c.classList.toggle("locked", !isUnlocked(n));
+    c.classList.toggle("today", isToday(n));
+    c.classList.toggle("opened", opened.has(n));
+    c.classList.toggle("used", used.has(n));
+    const corner = c.querySelector(".front .corner, .front .badge");
+    if (isToday(n) && !opened.has(n)){ corner.className="badge"; corner.textContent="Aujourd'hui"; }
+    else { corner.className="corner"; corner.textContent="♥"; }
+  }
+  renderCounter();
+}
+
+/* --- Interactions --- */
+function onCard(n){
+  const c = cards[n];
+  if (!isUnlocked(n)){
+    c.querySelector(".inner").animate(
+      [{transform:"translateX(0)"},{transform:"translateX(-7px) rotate(-2deg)"},{transform:"translateX(7px) rotate(2deg)"},{transform:"translateX(-4px)"},{transform:"translateX(0)"}],
+      {duration:380});
+    toast(TAQUINERIES[Math.floor(Math.random()*TAQUINERIES.length)].replace("{n}",n));
+    return;
+  }
+  if (!opened.has(n)){
+    opened.add(n); store.set("avent-opened",[...opened]);
+    refresh();
+    burst(c);
+    setTimeout(()=>openTicket(n), 750);
+  } else openTicket(n);
+}
+
+function burst(el){
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  const items = ["♥","✦","•","♥","✧"];
+  const colors = ["#FEEAA1","#D6955B","#ECF8F6"];
+  for (let i=0;i<18;i++){
+    const s = document.createElement("span");
+    s.className = "burst";
+    s.textContent = items[i%items.length];
+    s.style.color = colors[i%colors.length];
+    s.style.left = cx+"px"; s.style.top = cy+"px";
+    document.body.appendChild(s);
+    const a = Math.random()*Math.PI*2, d = 60 + Math.random()*90;
+    s.animate([
+      {transform:"translate(-50%,-50%) scale(.4)",opacity:1},
+      {transform:`translate(calc(-50% + ${Math.cos(a)*d}px), calc(-50% + ${Math.sin(a)*d}px)) scale(${1+Math.random()}) rotate(${Math.random()*180}deg)`,opacity:0}
+    ],{duration:900+Math.random()*400,easing:"cubic-bezier(.2,.8,.3,1)"}).onfinish = () => s.remove();
+  }
+}
+
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* --- Ticket --- */
+const overlay = document.getElementById("overlay");
+const ticket = document.getElementById("ticket");
+const stub = document.getElementById("stub");
+const slider = document.getElementById("slider");
+const knob = document.getElementById("knob");
+const fill = document.getElementById("fill");
+const send = document.getElementById("send");
+let current = null;
+
+function openTicket(n){
+  current = n;
+  const b = BONS[n-1];
+  document.getElementById("tDay").textContent = `Bon n°${n} · ${dateLabel(n)}`;
+  document.getElementById("tIcon").innerHTML = ICONS[b.i];
+  document.getElementById("tTitle").textContent = b.t;
+  document.getElementById("tDesc").textContent = b.d;
+  document.getElementById("tValid").textContent = `Offert par ${CONFIG.signature} à ${CONFIG.prenomElle}\nValable jusqu'au 31 décembre ${Y}`;
+
+  const msg = `${CONFIG.signature}, j'utilise mon bon n°${n} du calendrier de l'Avent : « ${b.t} ». Bisous, ${CONFIG.prenomElle}`;
+  document.getElementById("btnWa").href = `https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(msg)}`;
+  document.getElementById("btnMail").href = `mailto:${CONFIG.email}?subject=${encodeURIComponent("Bon n°"+n+" : "+b.t)}&body=${encodeURIComponent(msg)}`;
+  document.getElementById("fallback").textContent = `Si rien ne s'ouvre : ${CONFIG.email}`;
+
+  ticket.classList.toggle("is-expired", expired);
+  setUsedView(used.has(n));
+  overlay.classList.add("show");
+}
+function setUsedView(isUsed){
+  ticket.classList.toggle("is-used", isUsed);
+  stub.classList.remove("torn");
+  slider.style.display = isUsed ? "none" : "";
+  stub.querySelector(".stub-hint").style.display = isUsed ? "none" : "";
+  send.style.display = isUsed ? "block" : "none";
+  knob.style.transform = ""; fill.style.width = "";
+}
+function closeTicket(){ overlay.classList.remove("show"); current = null; }
+document.getElementById("close").onclick = closeTicket;
+overlay.onclick = e => { if (e.target === overlay) closeTicket(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeTicket(); });
+
+document.getElementById("undo").onclick = () => {
+  used.delete(current); store.set("avent-used",[...used]);
+  setUsedView(false); refresh();
+};
+
+// Glisser pour découper
+let drag = null;
+knob.addEventListener("pointerdown", e => {
+  drag = {x0:e.clientX, max: slider.clientWidth - knob.offsetWidth - 8};
+  knob.setPointerCapture(e.pointerId);
+});
+knob.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const dx = Math.max(0, Math.min(drag.max, e.clientX - drag.x0));
+  knob.style.transform = `translateX(${dx}px)`;
+  fill.style.width = (dx + 52) + "px";
+});
+knob.addEventListener("pointerup", e => {
+  if (!drag) return;
+  const dx = Math.max(0, e.clientX - drag.x0);
+  const done = dx >= drag.max * .88;
+  drag = null;
+  if (!done){
+    knob.animate([{transform:knob.style.transform},{transform:"translateX(0)"}],{duration:250,easing:"ease-out"});
+    knob.style.transform = ""; fill.style.width = "";
+    return;
+  }
+  used.add(current); store.set("avent-used",[...used]);
+  stub.classList.add("torn");
+  burst(knob);
+  setTimeout(()=>{ setUsedView(true); refresh(); stub.animate([{opacity:0,transform:"translateY(-10px)"},{opacity:1,transform:"none"}],{duration:350}); }, 600);
+});
+knob.addEventListener("pointercancel", () => { drag = null; knob.style.transform=""; fill.style.width=""; });
+
+/* --- Neige --- */
+const snow = document.getElementById("snow");
+for (let i=0;i<36;i++){
+  const s = document.createElement("i"), size = 2 + Math.random()*4;
+  Object.assign(s.style,{left:Math.random()*100+"vw",width:size+"px",height:size+"px",
+    animationDuration:7+Math.random()*10+"s",animationDelay:-Math.random()*16+"s",opacity:.15+Math.random()*.4});
+  snow.appendChild(s);
+}
+
+refresh();
+</script>
+</body>
+</html>
